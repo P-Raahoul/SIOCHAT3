@@ -1,0 +1,71 @@
+# Journaux
+logs
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+lerna-debug.log*
+
+node_modules
+**/node_modules/
+dist
+dist-ssr
+*.local
+
+# Répertoires et fichiers d'éditeur
+.vscode/*
+!.vscode/extensions.json
+.idea
+.DS_Store
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.sw?
+
+# Fichiers temporaires et caches supplémentaires
+.tmp/
+temp/
+tmp/
+.cache/
+.parcel-cache/
+.vite/
+.nuxt/
+
+# Bases de données locales
+*.db
+*.sqlite
+*.sqlite3
+*.sql
+
+# Archives et sauvegardes
+*.zip
+*.tar.gz
+*.rar
+*.7z
+*.bak
+*.backup
+
+# Fichiers système Windows
+Thumbs.db
+ehthumbs.db
+Desktop.ini
+$RECYCLE.BIN/
+*.stackdump
+
+# Outputs de build supplémentaires
+build/
+out/
+.next/
+.output/
+.vercel/
+.netlify/
+
+# Logs supplémentaires
+*.log.*
+access.log
+error.log
+debug.log
+npm-error.log
+yarn-error.log
