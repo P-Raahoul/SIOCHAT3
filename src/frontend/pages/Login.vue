@@ -96,32 +96,36 @@ export default {
       focusPassword: false,
     }
   },
-  methods: {
-    handleLogin() {
-      this.error = ''
-      if (!this.form.pseudo || !this.form.password) {
-        this.error = 'Veuillez remplir tous les champs.'
+methods: {
+  async handleLogin() {
+    this.error = ''
+    if (!this.form.pseudo || !this.form.password) {
+      this.error = 'Veuillez remplir tous les champs.'
+      return
+    }
+    this.isLoading = true
+    try {
+      const response = await fetch('http://localhost:3000/login', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ pseudo: this.form.pseudo })
+      })
+      const data = await response.json()
+      if (!response.ok) {
+        this.error = 'Pseudo ou mot de passe incorrect.'
+        this.isLoading = false
         return
       }
-      this.isLoading = true
-      setTimeout(() => {
-        const comptes = JSON.parse(localStorage.getItem('siochat_users') || '[]')
-        const utilisateur = comptes.find(
-          u => u.pseudo === this.form.pseudo && u.password === this.form.password
-        )
-        if (!utilisateur) {
-          this.error = 'Pseudo ou mot de passe incorrect.'
-          this.isLoading = false
-          return
-        }
-        localStorage.setItem('siochat_session', JSON.stringify({
-          pseudo: utilisateur.pseudo,
-          email: utilisateur.email,
-        }))
-        this.$router.push('/chat')
-      }, 500)
-    },
-  },
+      localStorage.setItem('siochat_session', JSON.stringify({
+        pseudo: data.user.pseudo,
+      }))
+      this.$router.push('/chat')
+    } catch (err) {
+      this.error = 'Impossible de contacter le serveur.'
+      this.isLoading = false
+    }
+  }
+}
 }
 </script>
 

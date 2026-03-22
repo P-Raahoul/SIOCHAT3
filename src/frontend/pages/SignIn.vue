@@ -142,30 +142,34 @@ export default {
     },
   },
   methods: {
-    handleSignin() {
-      this.error = ''
-      if (!this.form.pseudo || !this.form.email || !this.form.password) {
-        this.error = 'Veuillez remplir tous les champs.'
-        return
-      }
-      this.isLoading = true
-      setTimeout(() => {
-        const comptes = JSON.parse(localStorage.getItem('siochat_users') || '[]')
-        if (comptes.find(u => u.pseudo === this.form.pseudo)) {
-          this.error = 'Ce pseudo est déjà utilisé.'
-          this.isLoading = false; return
-        }
-        if (comptes.find(u => u.email === this.form.email)) {
-          this.error = 'Cet e-mail est déjà utilisé.'
-          this.isLoading = false; return
-        }
-        const nouvelUtilisateur = { pseudo: this.form.pseudo, email: this.form.email, password: this.form.password }
-        comptes.push(nouvelUtilisateur)
-        localStorage.setItem('siochat_users', JSON.stringify(comptes))
-        localStorage.setItem('siochat_session', JSON.stringify({ pseudo: nouvelUtilisateur.pseudo, email: nouvelUtilisateur.email }))
-        this.$router.push('/chat')
-      }, 500)
-    },
+    async handleSignin() {
+  this.error = ''
+  if (!this.form.pseudo || !this.form.email || !this.form.password) {
+    this.error = 'Veuillez remplir tous les champs.'
+    return
+  }
+  this.isLoading = true
+  try {
+    const response = await fetch('http://localhost:3000/users', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ pseudo: this.form.pseudo })
+    })
+    const data = await response.json()
+    if (!response.ok) {
+      this.error = data.error
+      this.isLoading = false
+      return
+    }
+    localStorage.setItem('siochat_session', JSON.stringify({
+      pseudo: data.pseudo,
+    }))
+    this.$router.push('/chat')
+  } catch (err) {
+    this.error = 'Impossible de contacter le serveur.'
+    this.isLoading = false
+  }
+}
   },
 }
 </script>

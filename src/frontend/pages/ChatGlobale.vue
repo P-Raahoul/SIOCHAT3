@@ -165,14 +165,19 @@ export default {
       this.avatar = profil.avatar || null
     },
     loadMessages() {
-      const msgs = JSON.parse(localStorage.getItem('siochat_messages') || '[]')
-      this.messages = msgs
-      this.$nextTick(() => this.scrollToBottom())
-    },
-    loadUtilisateurs() {
-      const comptes = JSON.parse(localStorage.getItem('siochat_users') || '[]')
-      this.autresUtilisateurs = comptes.filter(u => u.pseudo !== this.session.pseudo)
-    },
+  const msgs = JSON.parse(localStorage.getItem('siochat_messages') || '[]')
+  this.messages = msgs
+  this.$nextTick(() => this.scrollToBottom())
+},
+async loadUtilisateurs() {
+  try {
+    const response = await fetch('http://localhost:3000/users')
+    const data = await response.json()
+    this.autresUtilisateurs = data.filter(u => u.pseudo !== this.session.pseudo)
+  } catch (err) {
+    console.error('Erreur chargement utilisateurs', err)
+  }
+},
     sendMessage() {
       const texte = this.newMessage.trim()
       if (!texte) return
