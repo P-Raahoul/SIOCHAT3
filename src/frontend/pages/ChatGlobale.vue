@@ -129,6 +129,7 @@
 <script>
 import ProfilModal from '../composant/Profile.vue'
 import ChatPrive from '../composant/ChatPrive.vue'
+import { io } from 'socket.io-client'
 
 export default {
   name: 'ChatGlobale',
@@ -143,6 +144,7 @@ export default {
       showChatPrive: false,
       chatPriveDestinataire: '',
       autresUtilisateurs: [],
+      socket: null,
       pollingInterval: null,
     }
   },
@@ -151,43 +153,50 @@ export default {
     if (!sessionData) { this.$router.push('/login'); return }
     this.session = JSON.parse(sessionData)
     this.loadAvatar()
-    this.loadMessages()
     this.loadUtilisateurs()
+
+    // Connexion Socket.IO
+    this.socket = io('http://localhost:3000')
+
+    // Recevoir les messages en temps réel
+    this.socket.on('chat message', (msg) => {
+      this.messages.push(msg)
+      this.$nextTick(() => this.scrollToBottom())
+    })
+
+    // Rafraîchir les utilisateurs toutes les 2 secondes
     this.pollingInterval = setInterval(() => {
-      this.loadMessages()
       this.loadUtilisateurs()
     }, 2000)
   },
-  beforeUnmount() { clearInterval(this.pollingInterval) },
+  beforeUnmount() {
+    clearInterval(this.pollingInterval)
+    if (this.socket) this.socket.disconnect()
+  },
   methods: {
     loadAvatar() {
       const profil = JSON.parse(localStorage.getItem('siochat_profil_' + this.session.pseudo) || '{}')
       this.avatar = profil.avatar || null
     },
-    loadMessages() {
-  const msgs = JSON.parse(localStorage.getItem('siochat_messages') || '[]')
-  this.messages = msgs
-  this.$nextTick(() => this.scrollToBottom())
-},
-async loadUtilisateurs() {
-  try {
-    const response = await fetch('http://localhost:3000/users')
-    const data = await response.json()
-    this.autresUtilisateurs = data.filter(u => u.pseudo !== this.session.pseudo)
-  } catch (err) {
-    console.error('Erreur chargement utilisateurs', err)
-  }
-},
+    async loadUtilisateurs() {
+      try {
+        const response = await fetch('http://localhost:3000/users')
+        const data = await response.json()
+        this.autresUtilisateurs = data.filter(u => u.pseudo !== this.session.pseudo)
+      } catch (err) {
+        console.error('Erreur chargement utilisateurs', err)
+      }
+    },
     sendMessage() {
       const texte = this.newMessage.trim()
       if (!texte) return
-      const msgs = JSON.parse(localStorage.getItem('siochat_messages') || '[]')
       const heure = new Date().toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' })
-      msgs.push({ pseudo: this.session.pseudo, text: texte, time: heure })
-      localStorage.setItem('siochat_messages', JSON.stringify(msgs))
-      this.messages = msgs
+      this.socket.emit('chat message', {
+        pseudo: this.session.pseudo,
+        text: texte,
+        time: heure
+      })
       this.newMessage = ''
-      this.$nextTick(() => this.scrollToBottom())
     },
     scrollToBottom() {
       const area = this.$refs.messagesArea
@@ -199,6 +208,7 @@ async loadUtilisateurs() {
     },
     handleLogout() {
       localStorage.removeItem('siochat_session')
+      if (this.socket) this.socket.disconnect()
       this.$router.push('/login')
     },
     onProfileUpdated({ pseudo, avatar }) {

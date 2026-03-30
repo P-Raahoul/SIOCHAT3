@@ -12,8 +12,8 @@ const io = new Server(httpServer, {
   },
 });
 
-
 app.use(express.json());
+
 // Tableau qui stocke les utilisateurs
 const users = [];
 
@@ -54,26 +54,26 @@ app.post('/login', (req, res) => {
   res.json({ message: "Connecté", user });
 });
 
-
-
-// la suite 
+// Socket.IO
 io.on('connection', (socket) => {
-  console.log('Un utilisateur vient de se connecter');
+  console.log('Un utilisateur vient de se connecter')
 
-  // Réception d'un objet contenant pseudo et message
   socket.on('chat message', (data) => {
-    console.log("Données reçues du client : ", data);  // Affiche les données envoyées par le client
+    const heure = new Date().toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' })
+    const msg = {
+      pseudo: data.pseudo,
+      text: data.text,
+      time: data.time || heure
+    }
+    io.emit('chat message', msg)
+  })
 
-    // Formatage du message en chaîne de caractères
-    const message = `${data.pseudo} : ${data.text}`;
-    
-    io.emit('chat message', message);  // Envoi du message formaté à tous les clients
-  });
-});
+  socket.on('disconnect', () => {
+    console.log('Un utilisateur vient de se déconnecter')
+  })
+})
 
 const PORT = process.env.PORT || 3000;
 httpServer.listen(PORT, () => {
   console.log(`Server running on port ${PORT}`);
 });
-
-
