@@ -110,6 +110,8 @@
 </template>
 
 <script>
+const API_URL = window.location.origin
+
 export default {
   name: 'SigninPage',
   data() {
@@ -143,33 +145,33 @@ export default {
   },
   methods: {
     async handleSignin() {
-  this.error = ''
-  if (!this.form.pseudo || !this.form.email || !this.form.password) {
-    this.error = 'Veuillez remplir tous les champs.'
-    return
-  }
-  this.isLoading = true
-  try {
-    const response = await fetch('http://localhost:3000/users', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ pseudo: this.form.pseudo })
-    })
-    const data = await response.json()
-    if (!response.ok) {
-      this.error = data.error
-      this.isLoading = false
-      return
+      this.error = ''
+      if (!this.form.pseudo || !this.form.email || !this.form.password) {
+        this.error = 'Veuillez remplir tous les champs.'
+        return
+      }
+      this.isLoading = true
+      try {
+        const response = await fetch(`${API_URL}/users`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ pseudo: this.form.pseudo })
+        })
+        const data = await response.json()
+        if (!response.ok) {
+          this.error = data.error
+          this.isLoading = false
+          return
+        }
+        localStorage.setItem('siochat_session', JSON.stringify({
+          pseudo: data.pseudo,
+        }))
+        this.$router.push('/chat')
+      } catch (err) {
+        this.error = 'Impossible de contacter le serveur.'
+        this.isLoading = false
+      }
     }
-    localStorage.setItem('siochat_session', JSON.stringify({
-      pseudo: data.pseudo,
-    }))
-    this.$router.push('/chat')
-  } catch (err) {
-    this.error = 'Impossible de contacter le serveur.'
-    this.isLoading = false
-  }
-}
   },
 }
 </script>

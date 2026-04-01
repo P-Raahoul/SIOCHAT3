@@ -131,6 +131,8 @@ import ProfilModal from '../composant/Profile.vue'
 import ChatPrive from '../composant/ChatPrive.vue'
 import { io } from 'socket.io-client'
 
+const API_URL = window.location.origin
+
 export default {
   name: 'ChatGlobale',
   components: { ProfilModal, ChatPrive },
@@ -156,7 +158,7 @@ export default {
     this.loadUtilisateurs()
 
     // Connexion Socket.IO
-    this.socket = io('http://localhost:3000')
+    this.socket = io(API_URL)
 
     // Recevoir les messages en temps réel
     this.socket.on('chat message', (msg) => {
@@ -180,7 +182,7 @@ export default {
     },
     async loadUtilisateurs() {
       try {
-        const response = await fetch('http://localhost:3000/users')
+        const response = await fetch(`${API_URL}/users`)
         const data = await response.json()
         this.autresUtilisateurs = data.filter(u => u.pseudo !== this.session.pseudo)
       } catch (err) {
