@@ -4,6 +4,7 @@ import express from 'express';
 import cors from 'cors';
 import path from 'path';
 import { fileURLToPath } from 'url';
+import mongoose from 'mongoose';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
@@ -11,7 +12,6 @@ const app = express();
 app.use(cors());
 app.use(express.json());
 
-// Sert les fichiers du dossier "dist" (votre front-end compilé)
 app.use(express.static(path.join(__dirname, '..', 'SIOCHAT3', 'dist')));
 
 const httpServer = createServer(app);
@@ -21,38 +21,47 @@ const io = new Server(httpServer, {
   },
 });
 
-// Tableau qui stocke les utilisateurs
-const users = [];
+// Connexion MongoDB
+mongoose.connect('mongodb+srv://raahoulpandourangame_db_user:Kalai1218PDFi@sio-chat.dk8jf8a.mongodb.net/?appName=SIO-CHAT')
+  .then(() => console.log('✅ Connecté à MongoDB'))
+  .catch((err) => console.error('❌ Erreur MongoDB:', err))
+
+// Schéma utilisateur
+const userSchema = new mongoose.Schema({
+  pseudo: { type: String, required: true, unique: true },
+})
+const User = mongoose.model('User', userSchema)
 
 // Créer un utilisateur
-app.post('/users', (req, res) => {
-  const { pseudo } = req.body;
+app.post('/users', async (req, res) => {
+  const { pseudo } = req.body
   if (!pseudo || pseudo.length < 3) {
-    return res.status(400).json({ error: "Pseudo invalide (minimum 3 caractères)" });
+    return res.status(400).json({ error: "Pseudo invalide (minimum 3 caractères)" })
   }
-  const exists = users.find(u => u.pseudo === pseudo);
-  if (exists) {
-    return res.status(400).json({ error: "Pseudo déjà utilisé" });
+  try {
+    const user = new User({ pseudo })
+    await user.save()
+    res.status(201).json(user)
+  } catch (err) {
+    res.status(400).json({ error: "Pseudo déjà utilisé" })
   }
-  const user = { id: users.length + 1, pseudo };
-  users.push(user);
-  res.status(201).json(user);
-});
+})
 
 // Récupérer tous les utilisateurs
-app.get('/users', (req, res) => {
-  res.json(users);
-});
+app.get('/users', async (req, res) => {
+  const users = await User.find()
+  res.json(users)
+})
 
 // Login
-app.post('/login', (req, res) => {
-  const { pseudo } = req.body;
-  const user = users.find(u => u.pseudo === pseudo);
+app.post('/login', async (req, res) => {
+  const { pseudo } = req.body
+  const user = await User.findOne({ pseudo })
   if (!user) {
-    return res.status(404).json({ error: "Utilisateur non trouvé" });
+    return res.status(404).json({ error: "Utilisateur non trouvé" })
   }
-  res.json({ message: "Connecté", user });
-});
+  res.json({ message: "Connecté", user })
+})
 
 // Socket.IO
 io.on('connection', (socket) => {
