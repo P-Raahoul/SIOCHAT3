@@ -110,7 +110,7 @@
 </template>
 
 <script>
-const API_URL = window.location.origin
+const API_URL = 'http://localhost:3000'
 
 export default {
   name: 'SigninPage',

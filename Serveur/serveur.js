@@ -12,7 +12,7 @@ const app = express();
 app.use(cors());
 app.use(express.json());
 
-app.use(express.static(path.join(__dirname, '..', 'SIOCHAT3', 'dist')));
+//app.use(express.static(path.join(__dirname, '..', 'SIOCHAT3', 'dist')));//
 
 const httpServer = createServer(app);
 const io = new Server(httpServer, {
@@ -22,7 +22,7 @@ const io = new Server(httpServer, {
 });
 
 // Connexion MongoDB
-mongoose.connect('mongodb+srv://raahoulpandourangame_db_user:Kalai1218PDFi@sio-chat.dk8jf8a.mongodb.net/?appName=SIO-CHAT')
+mongoose.connect('mongodb+srv://raahoulpandourangame_db_user:sio123456@sio-chat.dk8jf8a.mongodb.net/?appName=SIO-CHAT')
   .then(() => console.log('✅ Connecté à MongoDB'))
   .catch((err) => console.error('❌ Erreur MongoDB:', err))
 

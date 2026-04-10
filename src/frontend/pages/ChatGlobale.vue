@@ -131,7 +131,7 @@ import ProfilModal from '../composant/Profile.vue'
 import ChatPrive from '../composant/ChatPrive.vue'
 import { io } from 'socket.io-client'
 
-const API_URL = window.location.origin
+const API_URL = 'http://localhost:3000'
 
 export default {
   name: 'ChatGlobale',
