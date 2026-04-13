@@ -71,19 +71,27 @@
 <script>
 export default {
   name: 'ProfilModal',
+
+  // Événements émis vers le parent :
+  // - 'close' : ferme la modale
+  // - 'profile-updated' : notifie le parent avec le nouveau pseudo et avatar
   emits: ['close', 'profile-updated'],
+
   data() {
     return {
-      pseudo: '',
-      previewUrl: null,
-      avatarBase64: null,
-      successMsg: '',
-      errorMsg: '',
+      pseudo: '',          // Pseudo actuel de l'utilisateur (modifiable dans le champ)
+      previewUrl: null,    // URL de prévisualisation de l'avatar (base64 ou null)
+      avatarBase64: null,  // Données base64 de l'image à sauvegarder dans le localStorage
+      successMsg: '',      // Message de succès affiché après sauvegarde
+      errorMsg: '',        // Message d'erreur affiché en cas de problème
     }
   },
+
   computed: {
+    // Retourne un style de fond dégradé basé sur la première lettre du pseudo
+    // (utilisé uniquement si aucun avatar n'est défini)
     avatarStyle() {
-      if (this.previewUrl) return {}
+      if (this.previewUrl) return {} // Pas de style si un avatar est déjà affiché
       const colors = [
         'linear-gradient(135deg, #1d4ed8, #3b82f6)',
         'linear-gradient(135deg, #1e40af, #60a5fa)',
@@ -92,48 +100,72 @@ export default {
         'linear-gradient(135deg, #3730a3, #6366f1)',
         'linear-gradient(135deg, #0369a1, #38bdf8)',
       ]
+      // Sélection déterministe de la couleur selon le code ASCII du premier caractère
       const index = (this.pseudo.charCodeAt(0) || 0) % colors.length
       return { background: colors[index] }
     },
   },
+
+  // Chargement du profil dès la création du composant
   created() { this.loadProfile() },
+
   methods: {
+    // Charge le pseudo et l'avatar depuis le localStorage au montage de la modale
     loadProfile() {
       const session = JSON.parse(localStorage.getItem('siochat_session') || '{}')
       this.pseudo = session.pseudo || ''
       const profil = JSON.parse(localStorage.getItem('siochat_profil_' + this.pseudo) || '{}')
+      // Si un avatar existe déjà, on l'affiche en prévisualisation
       if (profil.avatar) { this.previewUrl = profil.avatar; this.avatarBase64 = profil.avatar }
     },
+
+    // Gère le changement d'image : vérifie la taille puis convertit en base64 via FileReader
     handleImageUpload(event) {
       const fichier = event.target.files[0]
       if (!fichier) return
+      // Limite la taille à 2 Mo pour ne pas surcharger le localStorage
       if (fichier.size > 2 * 1024 * 1024) { this.errorMsg = 'Image trop lourde (max 2 Mo).'; return }
       const reader = new FileReader()
       reader.onload = (e) => {
-        this.previewUrl = e.target.result
-        this.avatarBase64 = e.target.result
+        this.previewUrl = e.target.result   // Affichage immédiat de la prévisualisation
+        this.avatarBase64 = e.target.result // Stockage pour la sauvegarde
         this.errorMsg = ''
       }
       reader.readAsDataURL(fichier)
     },
+
+    // Supprime l'avatar sélectionné et réinitialise la prévisualisation
     removePhoto() { this.previewUrl = null; this.avatarBase64 = null },
+
+    // Sauvegarde le profil modifié (pseudo et/ou avatar) dans le localStorage
     saveProfile() {
       this.successMsg = ''; this.errorMsg = ''
       const pseudoTrimmed = this.pseudo.trim()
+
+      // Validation : le pseudo ne peut pas être vide
       if (!pseudoTrimmed) { this.errorMsg = 'Le pseudo ne peut pas être vide.'; return }
+
       const session = JSON.parse(localStorage.getItem('siochat_session') || '{}')
       const ancienPseudo = session.pseudo
+
+      // Si le pseudo a changé, on vérifie qu'il n'est pas déjà pris puis on met à jour la liste des comptes
       if (pseudoTrimmed !== ancienPseudo) {
         const comptes = JSON.parse(localStorage.getItem('siochat_users') || '[]')
         if (comptes.find(u => u.pseudo === pseudoTrimmed)) { this.errorMsg = 'Ce pseudo est déjà utilisé.'; return }
         const comptesMAJ = comptes.map(u => u.pseudo === ancienPseudo ? { ...u, pseudo: pseudoTrimmed } : u)
         localStorage.setItem('siochat_users', JSON.stringify(comptesMAJ))
       }
+
+      // Mise à jour de la session et du profil dans le localStorage
       session.pseudo = pseudoTrimmed
       localStorage.setItem('siochat_session', JSON.stringify(session))
       localStorage.setItem('siochat_profil_' + pseudoTrimmed, JSON.stringify({ avatar: this.avatarBase64 }))
+
+      // Suppression de l'ancien profil si le pseudo a changé pour éviter les données orphelines
       if (pseudoTrimmed !== ancienPseudo) localStorage.removeItem('siochat_profil_' + ancienPseudo)
+
       this.successMsg = 'Profil mis à jour !'
+      // Notification du parent avec les nouvelles données pour qu'il mette à jour son état
       this.$emit('profile-updated', { pseudo: pseudoTrimmed, avatar: this.avatarBase64 })
     },
   },

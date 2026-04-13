@@ -84,45 +84,58 @@
 </template>
 
 <script>
+// URL de base de l'API backend
 const API_URL = 'http://localhost:3000'
 
 export default {
   name: 'LoginPage',
+
   data() {
     return {
-      form: { pseudo: '', password: '' },
-      error: '',
-      isLoading: false,
-      showPassword: false,
-      focusPseudo: false,
-      focusPassword: false,
+      form: { pseudo: '', password: '' }, // Valeurs saisies dans le formulaire
+      error: '',           // Message d'erreur affiché sous le formulaire
+      isLoading: false,    // true pendant la requête → affiche le spinner et désactive le bouton
+      showPassword: false, // Bascule la visibilité du mot de passe (texte / masqué)
+      focusPseudo: false,  // true quand le champ pseudo est actif (pour le style CSS)
+      focusPassword: false, // true quand le champ mot de passe est actif (pour le style CSS)
     }
   },
+
   methods: {
+    // Gère la soumission du formulaire de connexion
     async handleLogin() {
-      this.error = ''
+      this.error = '' // Réinitialise l'éventuel message d'erreur précédent
+
+      // Validation : les deux champs doivent être remplis
       if (!this.form.pseudo || !this.form.password) {
         this.error = 'Veuillez remplir tous les champs.'
         return
       }
+
       this.isLoading = true
       try {
+        // Envoi de la requête de connexion au backend
         const response = await fetch(`${API_URL}/login`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ pseudo: this.form.pseudo })
         })
         const data = await response.json()
+
+        // Si le serveur répond avec une erreur (ex: pseudo inconnu), on affiche le message
         if (!response.ok) {
           this.error = 'Pseudo ou mot de passe incorrect.'
           this.isLoading = false
           return
         }
+
+        // Connexion réussie : sauvegarde de la session dans le localStorage et redirection
         localStorage.setItem('siochat_session', JSON.stringify({
           pseudo: data.user.pseudo,
         }))
         this.$router.push('/chat')
       } catch (err) {
+        // Erreur réseau ou serveur injoignable
         this.error = 'Impossible de contacter le serveur.'
         this.isLoading = false
       }

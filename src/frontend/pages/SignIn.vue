@@ -110,22 +110,27 @@
 </template>
 
 <script>
+// URL de base de l'API backend
 const API_URL = 'http://localhost:3000'
 
 export default {
   name: 'SigninPage',
+
   data() {
     return {
-      form: { pseudo: '', email: '', password: '' },
-      error: '',
-      isLoading: false,
-      showPassword: false,
-      focusPseudo: false,
-      focusEmail: false,
-      focusPassword: false,
+      form: { pseudo: '', email: '', password: '' }, // Valeurs saisies dans les trois champs
+      error: '',            // Message d'erreur affiché sous le formulaire
+      isLoading: false,     // true pendant la requête → affiche le spinner et désactive le bouton
+      showPassword: false,  // Bascule la visibilité du mot de passe (texte / masqué)
+      focusPseudo: false,   // true quand le champ pseudo est actif (pour le style CSS)
+      focusEmail: false,    // true quand le champ email est actif (pour le style CSS)
+      focusPassword: false, // true quand le champ mot de passe est actif (pour le style CSS)
     }
   },
+
   computed: {
+    // Calcule un score de force du mot de passe de 0 à 4 :
+    // +1 si ≥ 6 caractères, +1 si ≥ 10, +1 si majuscule ou chiffre, +1 si caractère spécial
     passwordStrength() {
       const p = this.form.password
       if (p.length === 0) return 0
@@ -136,38 +141,53 @@ export default {
       if (/[^A-Za-z0-9]/.test(p)) score++
       return score
     },
+
+    // Retourne la couleur associée au niveau de force (rouge → vert)
     strengthColor() {
       return ['', '#ef4444', '#f97316', '#eab308', '#22c55e'][this.passwordStrength]
     },
+
+    // Retourne le libellé textuel associé au niveau de force
     strengthLabel() {
       return ['', 'Faible', 'Moyen', 'Bon', 'Fort'][this.passwordStrength]
     },
   },
+
   methods: {
+    // Gère la soumission du formulaire d'inscription
     async handleSignin() {
-      this.error = ''
+      this.error = '' // Réinitialise l'éventuel message d'erreur précédent
+
+      // Validation : les trois champs doivent être remplis
       if (!this.form.pseudo || !this.form.email || !this.form.password) {
         this.error = 'Veuillez remplir tous les champs.'
         return
       }
+
       this.isLoading = true
       try {
+        // Envoi de la requête de création de compte au backend
         const response = await fetch(`${API_URL}/users`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ pseudo: this.form.pseudo })
         })
         const data = await response.json()
+
+        // Si le serveur répond avec une erreur (ex: pseudo déjà pris), on affiche le message renvoyé
         if (!response.ok) {
           this.error = data.error
           this.isLoading = false
           return
         }
+
+        // Inscription réussie : sauvegarde de la session dans le localStorage et redirection vers le chat
         localStorage.setItem('siochat_session', JSON.stringify({
           pseudo: data.pseudo,
         }))
         this.$router.push('/chat')
       } catch (err) {
+        // Erreur réseau ou serveur injoignable
         this.error = 'Impossible de contacter le serveur.'
         this.isLoading = false
       }

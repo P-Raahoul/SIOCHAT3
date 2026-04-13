@@ -12,7 +12,8 @@ Une application de chat en temps réel construite avec Vue 3 et Socket.io.
 ## Pile Technologique
 
 - **Frontend** : Vue 3, Vue Router, Vite
-- **Backend** : Node.js, Socket.io
+- **Backend** : Node.js, Socket.io, Express
+- **Base de données** : MongoDB Atlas
 - **Outil de Build** : Vite
 
 ## Configuration IDE Recommandée
@@ -39,29 +40,31 @@ Une application de chat en temps réel construite avec Vue 3 et Socket.io.
 
 1. Cloner le dépôt
 2. Installer les dépendances pour le frontend :
-   ```sh
+```sh
    npm install
-   ```
+```
 3. Installer les dépendances pour le serveur :
-   ```sh
+```sh
    cd Serveur
    npm install
    cd ..
-   ```
+```
 
 ### Exécution de l'Application
 
 1. Démarrer le serveur :
-   ```sh
+```sh
    cd Serveur
    node serveur.js
-   ```
-   Le serveur tournera sur le port 3000 (ou variable d'environnement PORT).
+```
+   Vous devez voir :
+   - Connecté à MongoDB
+   - Server running on port 3000
 
 2. Dans un nouveau terminal, démarrer le frontend :
-   ```sh
+```sh
    npm run dev
-   ```
+```
    Le frontend sera disponible sur http://localhost:5173 (port Vite par défaut).
 
 ### Build pour la Production

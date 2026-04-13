@@ -66,55 +66,85 @@
 <script>
 export default {
   name: 'ChatPrive',
+
   props: {
+    // Pseudo de l'utilisateur avec qui on discute (obligatoire, passé par le parent)
     destinataire: { type: String, required: true },
   },
+
+  // Événement émis vers le parent pour fermer la modale
   emits: ['close'],
+
   data() {
     return {
-      session: {},
-      messages: [],
-      newMessage: '',
-      pollingInterval: null,
+      session: {},           // Données de l'utilisateur connecté (pseudo, etc.)
+      messages: [],          // Liste des messages de la conversation privée
+      newMessage: '',        // Contenu du champ de saisie
+      pollingInterval: null, // Référence de l'intervalle de polling des messages
     }
   },
+
   created() {
+    // Récupération de la session depuis le localStorage
     this.session = JSON.parse(localStorage.getItem('siochat_session') || '{}')
     this.loadMessages()
+    // Polling toutes les 2 secondes pour détecter les nouveaux messages de l'autre utilisateur
     this.pollingInterval = setInterval(this.loadMessages, 2000)
   },
-  beforeUnmount() { clearInterval(this.pollingInterval) },
+
+  beforeUnmount() {
+    // Nettoyage : arrêt du polling avant destruction du composant
+    clearInterval(this.pollingInterval)
+  },
+
   methods: {
+    // Génère une clé unique pour la conversation entre les deux utilisateurs.
+    // Les pseudos sont triés alphabétiquement pour que la clé soit identique des deux côtés.
     getConversationKey() {
       const p = [this.session.pseudo, this.destinataire].sort()
       return `siochat_mp_${p[0]}_${p[1]}`
     },
+
+    // Charge les messages de la conversation depuis le localStorage et défile vers le bas
     loadMessages() {
       const msgs = JSON.parse(localStorage.getItem(this.getConversationKey()) || '[]')
       this.messages = msgs
       this.$nextTick(() => this.scrollToBottom())
     },
+
+    // Envoie un message : l'ajoute dans le localStorage puis met à jour l'affichage
     sendMessage() {
       const texte = this.newMessage.trim()
-      if (!texte) return
+      if (!texte) return // Ignore les messages vides
+
       const msgs = JSON.parse(localStorage.getItem(this.getConversationKey()) || '[]')
       const heure = new Date().toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' })
+
+      // Ajout du nouveau message avec l'expéditeur, le destinataire, le texte et l'heure
       msgs.push({ from: this.session.pseudo, to: this.destinataire, text: texte, time: heure })
       localStorage.setItem(this.getConversationKey(), JSON.stringify(msgs))
+
       this.messages = msgs
-      this.newMessage = ''
+      this.newMessage = '' // Réinitialise le champ de saisie après envoi
       this.$nextTick(() => this.scrollToBottom())
     },
+
+    // Fait défiler la zone de messages jusqu'en bas
     scrollToBottom() {
       const area = this.$refs.messagesArea
       if (area) area.scrollTop = area.scrollHeight
     },
+
+    // Retourne l'URL de l'avatar d'un utilisateur depuis le localStorage, ou null si absent
     getAvatar(pseudo) {
       const profil = JSON.parse(localStorage.getItem('siochat_profil_' + pseudo) || '{}')
       return profil.avatar || null
     },
+
+    // Retourne un style de fond dégradé basé sur la première lettre du pseudo
+    // (utilisé quand l'utilisateur n'a pas d'avatar)
     getAvatarStyle(pseudo) {
-      if (this.getAvatar(pseudo)) return {}
+      if (this.getAvatar(pseudo)) return {} // Pas de style si un avatar existe déjà
       const colors = [
         'linear-gradient(135deg, #1d4ed8, #3b82f6)',
         'linear-gradient(135deg, #1e40af, #60a5fa)',
@@ -123,6 +153,7 @@ export default {
         'linear-gradient(135deg, #3730a3, #6366f1)',
         'linear-gradient(135deg, #0369a1, #38bdf8)',
       ]
+      // Sélection déterministe de la couleur selon le code ASCII du premier caractère
       const index = (pseudo.charCodeAt(0) || 0) % colors.length
       return { background: colors[index] }
     },

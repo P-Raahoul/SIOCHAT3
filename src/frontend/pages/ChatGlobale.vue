@@ -127,59 +127,73 @@
 </template>
 
 <script>
+// Composants enfants utilisés dans cette page
 import ProfilModal from '../composant/Profile.vue'
 import ChatPrive from '../composant/ChatPrive.vue'
+// Client Socket.IO pour la communication en temps réel
 import { io } from 'socket.io-client'
 
+// URL de base de l'API backend
 const API_URL = 'http://localhost:3000'
 
 export default {
   name: 'ChatGlobale',
   components: { ProfilModal, ChatPrive },
+
   data() {
     return {
-      session: {},
-      avatar: null,
-      messages: [],
-      newMessage: '',
-      showProfil: false,
-      showChatPrive: false,
-      chatPriveDestinataire: '',
-      autresUtilisateurs: [],
-      socket: null,
-      pollingInterval: null,
+      session: {},              // Données de l'utilisateur connecté (pseudo, etc.)
+      avatar: null,             // URL de l'avatar de l'utilisateur connecté
+      messages: [],             // Liste des messages du chat global
+      newMessage: '',           // Contenu du champ de saisie
+      showProfil: false,        // Affiche/masque la modale de profil
+      showChatPrive: false,     // Affiche/masque la fenêtre de chat privé
+      chatPriveDestinataire: '', // Pseudo du destinataire du chat privé ouvert
+      autresUtilisateurs: [],   // Liste des autres utilisateurs connectés
+      socket: null,             // Instance Socket.IO
+      pollingInterval: null,    // Référence de l'intervalle de polling des utilisateurs
     }
   },
+
   created() {
+    // Vérification de la session — redirige vers /login si l'utilisateur n'est pas connecté
     const sessionData = localStorage.getItem('siochat_session')
     if (!sessionData) { this.$router.push('/login'); return }
     this.session = JSON.parse(sessionData)
+
+    // Chargement initial des données
     this.loadAvatar()
     this.loadUtilisateurs()
 
-    // Connexion Socket.IO
+    // Connexion Socket.IO au serveur
     this.socket = io(API_URL)
 
-    // Recevoir les messages en temps réel
+    // Écoute des nouveaux messages du chat global et défilement automatique vers le bas
     this.socket.on('chat message', (msg) => {
       this.messages.push(msg)
       this.$nextTick(() => this.scrollToBottom())
     })
 
-    // Rafraîchir les utilisateurs toutes les 2 secondes
+    // Polling toutes les 2 secondes pour mettre à jour la liste des utilisateurs connectés
     this.pollingInterval = setInterval(() => {
       this.loadUtilisateurs()
     }, 2000)
   },
+
   beforeUnmount() {
+    // Nettoyage : arrêt du polling et déconnexion du socket avant destruction du composant
     clearInterval(this.pollingInterval)
     if (this.socket) this.socket.disconnect()
   },
+
   methods: {
+    // Charge l'avatar de l'utilisateur connecté depuis le localStorage
     loadAvatar() {
       const profil = JSON.parse(localStorage.getItem('siochat_profil_' + this.session.pseudo) || '{}')
       this.avatar = profil.avatar || null
     },
+
+    // Récupère la liste de tous les utilisateurs depuis l'API et exclut l'utilisateur connecté
     async loadUtilisateurs() {
       try {
         const response = await fetch(`${API_URL}/users`)
@@ -189,41 +203,57 @@ export default {
         console.error('Erreur chargement utilisateurs', err)
       }
     },
+
+    // Envoie un message dans le chat global via Socket.IO
     sendMessage() {
       const texte = this.newMessage.trim()
-      if (!texte) return
+      if (!texte) return // Ignore les messages vides
+
       const heure = new Date().toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' })
       this.socket.emit('chat message', {
         pseudo: this.session.pseudo,
         text: texte,
         time: heure
       })
-      this.newMessage = ''
+      this.newMessage = '' // Réinitialise le champ de saisie après envoi
     },
+
+    // Fait défiler la zone de messages jusqu'en bas
     scrollToBottom() {
       const area = this.$refs.messagesArea
       if (area) area.scrollTop = area.scrollHeight
     },
+
+    // Ouvre le chat privé avec l'utilisateur correspondant au pseudo donné
     ouvrirChatPrive(pseudo) {
       this.chatPriveDestinataire = pseudo
       this.showChatPrive = true
     },
+
+    // Déconnecte l'utilisateur : supprime la session, coupe le socket et redirige vers /login
     handleLogout() {
       localStorage.removeItem('siochat_session')
       if (this.socket) this.socket.disconnect()
       this.$router.push('/login')
     },
+
+    // Met à jour les données locales après modification du profil (pseudo, avatar)
     onProfileUpdated({ pseudo, avatar }) {
       this.session = JSON.parse(localStorage.getItem('siochat_session') || '{}')
       this.avatar = avatar
       this.showProfil = false
     },
+
+    // Retourne l'URL de l'avatar d'un utilisateur depuis le localStorage, ou null si absent
     getAvatar(pseudo) {
       const profil = JSON.parse(localStorage.getItem('siochat_profil_' + pseudo) || '{}')
       return profil.avatar || null
     },
+
+    // Retourne un style de fond dégradé basé sur la première lettre du pseudo
+    // (utilisé quand l'utilisateur n'a pas d'avatar)
     getAvatarStyle(pseudo) {
-      if (this.getAvatar(pseudo)) return {}
+      if (this.getAvatar(pseudo)) return {} // Pas de style si un avatar existe déjà
       const colors = [
         'linear-gradient(135deg, #1d4ed8, #3b82f6)',
         'linear-gradient(135deg, #1e40af, #60a5fa)',
@@ -232,15 +262,19 @@ export default {
         'linear-gradient(135deg, #3730a3, #6366f1)',
         'linear-gradient(135deg, #0369a1, #38bdf8)',
       ]
+      // Sélection déterministe de la couleur selon le code ASCII du premier caractère
       const index = (pseudo.charCodeAt(0) || 0) % colors.length
       return { background: colors[index] }
     },
+
+    // Vérifie si le dernier message privé avec cet utilisateur n'a pas encore été lu
+    // (le dernier message a été envoyé par l'autre utilisateur)
     hasUnread(pseudo) {
       const participants = [this.session.pseudo, pseudo].sort()
       const key = `siochat_mp_${participants[0]}_${participants[1]}`
       const msgs = JSON.parse(localStorage.getItem(key) || '[]')
       if (msgs.length === 0) return false
-      return msgs[msgs.length - 1].from === pseudo
+      return msgs[msgs.length - 1].from === pseudo // Non lu si le dernier message vient de l'autre
     },
   },
 }
